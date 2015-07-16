@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Sidewalk Damage</title>
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+		<link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
+		
+		<!-- CSS Styling -->
+		<style type="text/css">
+			html, body, #map {
+				height: 98%;
+				padding: 0;
+				margin: 0;
+			}
+			.navbar.navbar-inverse {
+				margin: 0;
+				border: 0;
+				padding: 0;
+				padding-right: 20px;
+			}
+		</style>
+		<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+	</head>
+	<!-- Navigation Bar -->
+	<nav class="navbar navbar-inverse">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="#">Sidewalk Damage</a>
+		</div>
+		<div>
+			<ul class="nav navbar-nav">
+				<form class="navbar-form">
+					<div style="display:table;" class="input-group">
+						<span style="width: 8%;" class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+						<input type="text" class="form-control" placeholder="Search By Address" id="pac-input">
+					</div>
+				</form>
+			</ul>
+			<ul class="nav navbar-nav navbar-right">
+				<form class="navbar-form pull-right">
+					<input type="text" class="form-control" placeholder="Search By Apn" id="textBox">
+					<input type="button" class="btn btn-primary" value="Find" id="Find">
+					<input type="button" class="btn btn-primary" value="Clear" id="Clear">
+				</form>
+			</ul>
+		</div>
+	</nav>
+    <div id="map"></div>
+	
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=false&libraries=places"></script>
+	<!--<script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>-->
+    <!-- include cartodb.js library -->
+    <script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
+    
+    <!-- Drop your code between the script tags below! -->
+    <script>
+	
+	
+	window.onload = function() {
+		//tables you're using
+		var tableName = "gisadmin_sidewalkdamageapn_citywide";
+		//layers to add to map
+		var vizjson = "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/761dd91e-24c3-11e5-80ab-42010a149c0c/viz.json";
+		//login data
+		var layerSource = {
+			user_name: 'oakland-admin',
+			type: 'cartodb',
+			sublayers: [{
+				sql: "SELECT * FROM " + tableName,
+				cartocss: $("simple").html()
+			}]
+		}
+		// Initialize map center and zoom level
+		var options = {
+					center: [37.8,-122.21], // Oakland
+					zoom: 12
+		}
+		
+		// Instantiate map on specified DOM element
+		var map_object = new L.Map(map, options);
+		
+		// Add a basemap to the map object just created
+		L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+			}).addTo(map_object);
+        
+		var sublayers = [];
+		cartodb.createLayer(map_object, vizjson)
+			.addTo(map_object)
+			.done(function(layer){
+				var sublayer = layer.getSubLayer(0);
+				sublayers.push(sublayer);
+				//call functions to trigger the eventhandlers
+				createClickEvent($('#Find'), tableName + " WHERE apn = ", 0);
+				createClearEvent($('#Clear'), tableName, 0);
+				
+			})
+			.error(function(err){
+				console.log("error: " + err);
+			});
+		initSearchBox();
+		
+		<!-- Functions -->
+		//not fully optimized
+		<!--Geocoder Start-->
+		function initSearchBox(){
+			var input = /** @type {HTMLInputElement} */(document.getElementById('pac-input'));
+			var searchBox = new google.maps.places.SearchBox( /** @type {HTMLInputElement} */(input));
+			
+			var marker = null;
+			google.maps.event.addListener(searchBox, 'places_changed', function(){
+				var places = searchBox.getPlaces();
+				if (places.length == 0){
+					return;
+				}
+				
+				var lat, lng;
+				if(marker != null)
+				{
+					map_object.removeLayer(marker);
+				}
+
+				for (var i = 0, place; place = places[i]; i++){
+					var image = {
+						url: place.icon,
+						size: new google.maps.Size(71,71),
+						origin: new google.maps.Point(0,0),
+						anchor: new google.maps.Point(17,34),
+						scaledSize: new google.maps.Size(25,25)
+					};
+					lat = place.geometry.location.lat();
+					lng = place.geometry.location.lng();
+				}
+				//using bounds doesn't work, leaflet bounds are not the same as google bounds
+				map_object.panTo({lat:lat, lng:lng});
+				map_object.setZoom(17);
+				marker = new L.marker([lat, lng],{clickable:false});
+				map_object.addLayer(marker);
+			});
+			
+			google.maps.event.addListener(map_object, 'bounds_changed', function(){
+				var bounds = map_object.getBounds();
+				searchBox.setBounds(bounds);
+			});
+		}
+		<!--Geocoder End-->
+		
+		<!--Query Start-->
+		//query for createClickEvent requires the tablename and the comparison statement with the field to query
+		//separating the fieldquery into 2 separate functions, eventcreator/wrapper and a query-er
+		function createClickEvent($button, query, layerNum){
+			$button.click(function(){
+				newQuery = "SELECT * FROM " + query + "'" + document.getElementById('textBox').value + "'";
+				createQuery(newQuery, layerNum);
+			})
+		}
+		
+		//requires full query statement "Select * From tableName WHERE column = 'data'" and the layer number
+		function createQuery(query, layerNum){
+			var sql = new cartodb.SQL({user: layerSource.user_name});
+			sublayers[layerNum].setSQL(query);
+			sql.getBounds(query).done(function(bounds){
+				map_object.fitBounds(bounds, {maxZoom:17});
+			})
+			return;
+		}
+		
+		function createClearEvent($button, query, layerNum){
+			$button.click(function(){
+				newQuery = "SELECT * FROM " + query;
+				createQuery(newQuery, layerNum);
+			})
+		}
+		<!--Query End-->
+		
+	}
+		// http://www.w3schools.com/bootstrap/default.asp
+		// https://developers.google.com/maps/documentation/javascript/examples/places-searchbox
+		// http://academy.cartodb.com/courses/03-cartodbjs-ground-up/lesson-1.html
+    </script>
+
+  </body>
+</html>
