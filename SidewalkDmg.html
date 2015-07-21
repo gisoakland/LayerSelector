@@ -62,13 +62,11 @@
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=false&libraries=places"></script>
 	<!--<script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>-->
-    <!-- include cartodb.js library -->
+    <!-- include cartodb.js library also includes leaflet-->
     <script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
     
     <!-- Drop your code between the script tags below! -->
-    <script>
-	
-	
+    <script>	
 	window.onload = function() {
 		//tables you're using
 		var tableName = "gisadmin_sidewalkdamageapn_citywide";
@@ -118,49 +116,25 @@
 		$('#Clear').click(function(){
 			var newQuery = "SELECT * FROM " + tableName;
 			createQuery(newQuery, sublayers[0]);
-		})
+		});
 		
 		<!-- Functions -->
 		//not fully optimized
 		<!--Geocoder Start-->
 		function initSearchBox(){
 			var input = /** @type {HTMLInputElement} */(document.getElementById('pac-input'));
-			var searchBox = new google.maps.places.SearchBox( /** @type {HTMLInputElement} */(input));
-			
+			var searchBox = new google.maps.places.Autocomplete( /** @type {HTMLInputElement} */(input));
 			var marker = null;
-			google.maps.event.addListener(searchBox, 'places_changed', function(){
-				var places = searchBox.getPlaces();
-				if (places.length == 0){
-					return;
-				}
-				
-				var lat, lng;
-				if(marker != null)
-				{
+			google.maps.event.addListener(searchBox, 'place_changed', function(){
+				var place = searchBox.getPlace();
+				if(marker != null){
 					map_object.removeLayer(marker);
 				}
-
-				for (var i = 0, place; place = places[i]; i++){
-					var image = {
-						url: place.icon,
-						size: new google.maps.Size(71,71),
-						origin: new google.maps.Point(0,0),
-						anchor: new google.maps.Point(17,34),
-						scaledSize: new google.maps.Size(25,25)
-					};
-					lat = place.geometry.location.lat();
-					lng = place.geometry.location.lng();
-				}
 				//using bounds doesn't work, leaflet bounds are not the same as google bounds
-				map_object.panTo({lat:lat, lng:lng});
+				map_object.panTo({lat:place.geometry.location.lat(), lng:place.geometry.location.lng()});
 				map_object.setZoom(17);
-				marker = new L.marker([lat, lng],{clickable:false});
+				marker = new L.marker([place.geometry.location.lat(), place.geometry.location.lng()],{clickable:false});
 				map_object.addLayer(marker);
-			});
-			
-			google.maps.event.addListener(map_object, 'bounds_changed', function(){
-				var bounds = map_object.getBounds();
-				searchBox.setBounds(bounds);
 			});
 		}
 		<!--Geocoder End-->
@@ -176,12 +150,10 @@
 			return;
 		}
 		<!--Query End-->
-		
 	}
 		// http://www.w3schools.com/bootstrap/default.asp
 		// https://developers.google.com/maps/documentation/javascript/examples/places-searchbox
 		// http://academy.cartodb.com/courses/03-cartodbjs-ground-up/lesson-1.html
     </script>
-
   </body>
 </html>
