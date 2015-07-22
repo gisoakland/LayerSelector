@@ -1,16 +1,22 @@
 <!-- 
 	To do: 
-			re-work buttons http://mistic100.github.io/jQuery-QueryBuilder/assets/demo-import-export.js
+done		re-work buttons http://mistic100.github.io/jQuery-QueryBuilder/assets/demo-import-export.js
 				buttons still must be on click and cannot be changed to google address search style because SELECT * FROM table where field = '' is a valid query
 			
 			re-write layers and query
-				>add in layer selector (addin multiple layers-lesson 1)(Select Layer-lesson 3)
+done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-lesson 3)
+
 				>possibly create a modal with full querybuilder for higher end users
+				>need to ask if it would be useful to do this
+				>or add in more tables that can be searched at the same time
+				>would make it a bit complicated
 				>http://mistic100.github.io/jQuery-QueryBuilder/
 				
 				>other direction, leave as is with only 1 searchable layer by 1 field for lower end users
+			http://tympanus.net/Development/ModalWindowEffects/ maybe?
 -->
 
+<!--Leaflet Version-->
 <!DOCTYPE html>
 <html>
 	<head>
@@ -22,27 +28,60 @@
 		<!-- CSS Styling -->
 		<style type="text/css">
 			html, body, #map {
-				height: 98%;
+				height: 98.3%;
 				padding: 0;
 				margin: 0;
 			}
-			.navbar.navbar-inverse {
-				margin: 0;
-				border: 0;
-				padding: 0;
-				padding-right: 20px;
+			.toggle.ios, .toggle-on.ios, .toggle-off.ios{
+				border-radius:20px;
+			}
+			.toggle.ios .toggle-handle{
+				border-radius: 20px;
+			}
+			.fast .toggle-group{
+				transition: left 0.1s;
+				-webkit-transition: left 0.1s;
+			}
+			.modal-dialog.modal-sm{
+				margin-top: 60px;
+				margin-right: 10px;
+				width: 360px;
+			}
+			.modal.fade .modal-dialog {
+				-webkit-transform: scale(0.1);
+				-moz-transform: scale(0.1);
+				-ms-transform: scale(0.1);
+				transform: scale(0.1);
+				top: 45px;
+				left: 100px;
+				opacity: 0.7;
+				-webkit-transition: all 0.3s;
+				-moz-transition: all 0.3s;
+				transition: all 0.3s;
+			}
+			.modal.fade.in .modal-dialog {
+				-webkit-transform: scale(1);
+				-moz-transform: scale(1);
+				-ms-transform: scale(1);
+				transform: scale(1);
+				-webkit-transform: translate3d(-100px, -45px, 0);
+				transform: translate3d(-100px, -45px, 0);
+				opacity: 1;
+			}
+			.modal-backdrop, .modal-backdrop.fade.in{
+				opacity:0;
 			}
 		</style>
-		<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
 	</head>
-	<!-- Navigation Bar -->
-	<nav class="navbar navbar-inverse">
+	
+	<!-- Navigation Bar, must be padded right by 15px or a scroll bar appears at bottom of map-->
+	<nav class="navbar navbar-default" style="margin:0; border:0; padding-right:15px; background-color:#FFFFFF">
 		<div class="navbar-header">
 			<a class="navbar-brand" href="#">Sidewalk Damage</a>
 		</div>
 		<div>
 			<ul class="nav navbar-nav">
-				<form class="navbar-form">
+				<form class="navbar-form" style="padding-left:0; padding-right:0">
 					<input type="text" class="form-control" placeholder="Search By Address" id="pac-input" style="width: 400px">	
 				</form>
 			</ul>
@@ -51,36 +90,65 @@
 					<input type="text" class="form-control" placeholder="Search By Apn" id="textBox">
 					<input type="button" class="btn btn-primary" value="Find" id="Find">
 					<input type="button" class="btn btn-primary" value="Clear" id="Clear">
+					<button type="button" class="btn btn-primary" id="layerModal">
+						<span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+					</button>
+					<div id="myModal" class="modal fade" role="dialog">
+						<div class="modal-dialog modal-sm">
+							<!--Couldn't get the modal backdrop to be completely gone, only options are to make it invisible or make it so it cant be closed by clicking outside the modal-->
+							<div class="modal-content">
+								<div class="modal-header" style="padding:10px">
+									<button type="button" class="close" data-dismiss="modal">&times;</button>
+									<h4 class="modal-title">Toggle Layers</h4>
+								</div>
+								<div class="modal-body" style="padding:10px">
+									<div class="checkbox">
+										<!-- Value should be where your layer will be stored in the sublayer array-->
+										<!-- add "checked" if you want to have the layer visible when loaded, if you don't want the layer visible you will also need to sublayer.hide() it when you load it in-->
+										<input name="layerselect" value="0" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+										&emsp;gisadmin_sidewalkdamageapn_citywide<br>
+										<input name="layerselect" value="1" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+										&emsp;sewergrid<br>
+										<input name="layerselect" value="2" type="checkbox" data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+										&emsp;sewerbasin<br>
+									</div>
+								</div>
+								<div class="modal-footer" style="padding:5px; padding-right:20px">
+									<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+								</div>
+							</div>
+						</div>
+					</div>
 				</form>
 			</ul>
 		</div>
 	</nav>
     <div id="map"></div>
 	
-	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<!--include scripts-->
+	<!--Jquery needs to be before bootstrap-->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.14/themes/css/cartodb.css" />
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="https://gitcdn.github.io/bootstrap-toggle/2.2.0/css/bootstrap-toggle.min.css" />
+	<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.0/js/bootstrap-toggle.min.js"></script>
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=false&libraries=places"></script>
-	<!--<script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>-->
-    <!-- include cartodb.js library also includes leaflet-->
     <script src="http://libs.cartocdn.com/cartodb.js/v3/3.14/cartodb.js"></script>
     
     <!-- Drop your code between the script tags below! -->
-    <script>	
+    <script>
 	window.onload = function() {
-		//tables you're using
-		var tableName = "gisadmin_sidewalkdamageapn_citywide";
-		//layers to add to map
-		var vizjson = "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/761dd91e-24c3-11e5-80ab-42010a149c0c/viz.json";
-		//login data
-		var layerSource = {
-			user_name: 'oakland-admin',
-			type: 'cartodb',
-			sublayers: [{
-				sql: "SELECT * FROM " + tableName,
-				cartocss: $("simple").html()
-			}]
-		}
+		var user = 'oakland-admin';
+		//tableName isn't very useful unless we decide to make it searchable by more layers or attempt to automate the addlayer process
+		var layerSource = [{
+			tableName: "gisadmin_sidewalkdamageapn_citywide",
+			vizjson: "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/761dd91e-24c3-11e5-80ab-42010a149c0c/viz.json"
+		},{
+			tableName: "sewergrid",
+			vizjson: "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/5a072d22-2a5c-11e5-a61d-42010a149c0c/viz.json"
+		}]
+		
 		// Initialize map center and zoom level
 		var options = {
 					center: [37.8,-122.21], // Oakland
@@ -96,26 +164,55 @@
 			}).addTo(map_object);
         
 		var sublayers = [];
-		cartodb.createLayer(map_object, vizjson)
+		//don't try to use a loop to grab from different vizjsons
+		//if you don't want a layer coming with the vizjson sublayer.hide() it instead of pushing it
+		//hide layers here if you didn't want it checked
+		cartodb.createLayer(map_object, layerSource[0].vizjson)
 			.addTo(map_object)
 			.done(function(layer){
 				var sublayer = layer.getSubLayer(0);
-				sublayers.push(sublayer);	
+				sublayers.push(sublayer);
+			})
+			.error(function(err){
+				console.log("error: " + err);
+			});
+		
+		cartodb.createLayer(map_object, layerSource[1].vizjson)
+			.addTo(map_object)
+			.done(function(layer){
+				var sublayer = layer.getSubLayer(0);
+				sublayers.push(sublayer);
+				sublayer = layer.getSubLayer(1);
+				sublayers.push(sublayer);
+				sublayer.hide();
 			})
 			.error(function(err){
 				console.log("error: " + err);
 			});
 		initSearchBox();
 		
-		//initialize buttons and code to handle them
+		<!--wiring up buttons to do things-->
 		$('#Find').click(function(){
-			var newQuery = "SELECT * FROM " + tableName + " WHERE apn = " + "'" + document.getElementById('textBox').value + "'";
+			var newQuery = "SELECT * FROM " + layerSource[0].tableName + " WHERE apn = " + "'" + document.getElementById('textBox').value + "'";
 			createQuery(newQuery, sublayers[0]);
 		});
 		
 		$('#Clear').click(function(){
-			var newQuery = "SELECT * FROM " + tableName;
+			var newQuery = "SELECT * FROM " + layerSource[0].tableName;
 			createQuery(newQuery, sublayers[0]);
+		});
+		
+		$('#layerModal').click(function(){
+			$('#myModal').modal();
+		});
+		
+		//class for toggles, 
+		$('input[name="layerselect"]').change(function(){
+			if($(this).is(":checked")){
+				sublayers[this.value].show();
+			}else{
+				sublayers[this.value].hide();
+			}
 		});
 		
 		<!-- Functions -->
@@ -139,10 +236,12 @@
 		}
 		<!--Geocoder End-->
 		
-		<!--Query Start-->
-		//requires full query statement "Select * From tableName WHERE column = 'data'" and the layer number
+		<!--Query Start-->	
+		//re-written, this is all you need
+		//still needs to be in main/onload unless you pass in the mapobject and the username or the username could just be a static
+		//requires full query statement "Select * From tableName WHERE column = 'data'" and the layer object
 		function createQuery(query, myLayer){
-			var sql = new cartodb.SQL({user: layerSource.user_name});
+			var sql = new cartodb.SQL({user});
 			myLayer.setSQL(query);
 			sql.getBounds(query).done(function(bounds){
 				map_object.fitBounds(bounds, {maxZoom:17});
@@ -154,6 +253,7 @@
 		// http://www.w3schools.com/bootstrap/default.asp
 		// https://developers.google.com/maps/documentation/javascript/examples/places-searchbox
 		// http://academy.cartodb.com/courses/03-cartodbjs-ground-up/lesson-1.html
+		// http://www.bootstraptoggle.com/ Toggle Switches
     </script>
   </body>
 </html>
