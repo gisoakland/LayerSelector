@@ -152,7 +152,8 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		// Initialize map center and zoom level
 		var options = {
 					center: [37.8,-122.21], // Oakland
-					zoom: 12
+					zoom: 12,
+					maxZoom: 21 //suggested max zoom allowed
 		}
 		
 		// Instantiate map on specified DOM element
@@ -160,13 +161,15 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		
 		// Add a basemap to the map object just created
 		L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+			maxZoom:22,
+			maxNativeZoom: 18 //zoom level to scale additional zoom layers
 			}).addTo(map_object);
         
 		var sublayers = [];
 		//don't try to use a loop to grab from different vizjsons
 		//if you don't want a layer coming with the vizjson sublayer.hide() it instead of pushing it
-		//hide layers here if you didn't want it checked
+		//hide layers here if you didn't want it visible on load
 		cartodb.createLayer(map_object, layerSource[0].vizjson)
 			.addTo(map_object)
 			.done(function(layer){
@@ -192,6 +195,7 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		initSearchBox();
 		
 		<!--wiring up buttons to do things-->
+		//var newQuery = "SELECT * FROM " + tableName + SQL comparator + field name + other SQL comparator + searchfield surrounded by ' '
 		$('#Find').click(function(){
 			var newQuery = "SELECT * FROM " + layerSource[0].tableName + " WHERE apn = " + "'" + document.getElementById('textBox').value + "'";
 			createQuery(newQuery, sublayers[0]);
@@ -219,17 +223,24 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		//not fully optimized
 		<!--Geocoder Start-->
 		function initSearchBox(){
-			var input = /** @type {HTMLInputElement} */(document.getElementById('pac-input'));
-			var searchBox = new google.maps.places.Autocomplete( /** @type {HTMLInputElement} */(input));
+			var bounds = map_object.getBounds();
+			var latlngSW = new google.maps.LatLng(bounds._southWest.lat, bounds._southWest.lng);
+			var latlngNE = new google.maps.LatLng(bounds._northEast.lat, bounds._northEast.lng);
+			var defaultBound = new google.maps.LatLngBounds();
+			defaultBound.extend(latlngSW);
+			defaultBound.extend(latlngNE);
+			
+			var searchBox = new google.maps.places.SearchBox(document.getElementById('pac-input'), {bounds: defaultBound});
 			var marker = null;
-			google.maps.event.addListener(searchBox, 'place_changed', function(){
-				var place = searchBox.getPlace();
+			google.maps.event.addListener(searchBox, 'places_changed', function(){
+				var place = searchBox.getPlaces()[0];
+				if(!place.geometry){
+					return;
+				}
 				if(marker != null){
 					map_object.removeLayer(marker);
 				}
-				//using bounds doesn't work, leaflet bounds are not the same as google bounds
-				map_object.panTo({lat:place.geometry.location.lat(), lng:place.geometry.location.lng()});
-				map_object.setZoom(17);
+				map_object.setView(new L.LatLng(place.geometry.location.lat(), place.geometry.location.lng()), 17);
 				marker = new L.marker([place.geometry.location.lat(), place.geometry.location.lng()],{clickable:false});
 				map_object.addLayer(marker);
 			});
