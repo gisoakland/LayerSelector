@@ -14,6 +14,18 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 				
 				>other direction, leave as is with only 1 searchable layer by 1 field for lower end users
 			http://tympanus.net/Development/ModalWindowEffects/ maybe?
+			
+			Set Layer appear at zoom level
+				>	map.on('zoomend', function () {
+						if (map.getZoom() > 9 && map.hasLayer(heatmapLayer)) {
+							map.removeLayer(heatmapLayer);
+						}
+						if (map.getZoom() < 9 && map.hasLayer(heatmapLayer) == false)
+						{
+							map.addLayer(heatmapLayer);
+						}  
+					}
+				>setOpacity = 0
 -->
 
 <!--Leaflet Version-->
@@ -45,7 +57,7 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 			.modal-dialog.modal-sm{
 				margin-top: 60px;
 				margin-right: 10px;
-				width: 360px;
+				width: 360px; /*needed to increase modal size because title of first layer was too long*/
 			}
 			.modal.fade .modal-dialog {
 				-webkit-transform: scale(0.1);
@@ -142,10 +154,10 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		var user = 'oakland-admin';
 		//tableName isn't very useful unless we decide to make it searchable by more layers or attempt to automate the addlayer process
 		var layerSource = [{
-			tableName: "gisadmin_sidewalkdamageapn_citywide",
+			tableName: ["gisadmin_sidewalkdamageapn_citywide"],
 			vizjson: "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/761dd91e-24c3-11e5-80ab-42010a149c0c/viz.json"
 		},{
-			tableName: "sewergrid",
+			tableName: ["sewergrid", "sewerbasin"],
 			vizjson: "https://oakland.cartodb.com/u/oakland-admin/api/v2/viz/5a072d22-2a5c-11e5-a61d-42010a149c0c/viz.json"
 		}]
 		
@@ -160,10 +172,11 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		var map_object = new L.Map(map, options);
 		
 		// Add a basemap to the map object just created
+		// maxNativeZoom refers to the maximum zoom the basemap provides, setting maxZoom will tell the map to stop requesting new tiles and to use a scaled version of the last requested tiledata
 		L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
 			attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
 			maxZoom:22,
-			maxNativeZoom: 18 //zoom level to scale additional zoom layers
+			maxNativeZoom:18 //zoom level to scale additional zoom layers
 			}).addTo(map_object);
         
 		var sublayers = [];
@@ -197,12 +210,12 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		<!--wiring up buttons to do things-->
 		//var newQuery = "SELECT * FROM " + tableName + SQL comparator + field name + other SQL comparator + searchfield surrounded by ' '
 		$('#Find').click(function(){
-			var newQuery = "SELECT * FROM " + layerSource[0].tableName + " WHERE apn = " + "'" + document.getElementById('textBox').value + "'";
+			var newQuery = "SELECT * FROM " + layerSource[0].tableName[0] + " WHERE apn = " + "'" + document.getElementById('textBox').value + "'";
 			createQuery(newQuery, sublayers[0]);
 		});
 		
 		$('#Clear').click(function(){
-			var newQuery = "SELECT * FROM " + layerSource[0].tableName;
+			var newQuery = "SELECT * FROM " + layerSource[0].tableName[0];
 			createQuery(newQuery, sublayers[0]);
 		});
 		
@@ -223,6 +236,7 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 		//not fully optimized
 		<!--Geocoder Start-->
 		function initSearchBox(){
+			//bias the search towards the map bounds
 			var bounds = map_object.getBounds();
 			var latlngSW = new google.maps.LatLng(bounds._southWest.lat, bounds._southWest.lng);
 			var latlngNE = new google.maps.LatLng(bounds._northEast.lat, bounds._northEast.lng);
@@ -231,7 +245,7 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 			defaultBound.extend(latlngNE);
 			
 			var searchBox = new google.maps.places.SearchBox(document.getElementById('pac-input'), {bounds: defaultBound});
-			var marker = null;
+			var marker = null; //for first run
 			google.maps.event.addListener(searchBox, 'places_changed', function(){
 				var place = searchBox.getPlaces()[0];
 				if(!place.geometry){
