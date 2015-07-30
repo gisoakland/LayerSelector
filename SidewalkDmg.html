@@ -16,16 +16,7 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 			http://tympanus.net/Development/ModalWindowEffects/ maybe?
 			
 			Set Layer appear at zoom level
-				>	map.on('zoomend', function () {
-						if (map.getZoom() > 9 && map.hasLayer(heatmapLayer)) {
-							map.removeLayer(heatmapLayer);
-						}
-						if (map.getZoom() < 9 && map.hasLayer(heatmapLayer) == false)
-						{
-							map.addLayer(heatmapLayer);
-						}  
-					}
-				>setOpacity = 0
+				>	change css
 -->
 
 <!--Leaflet Version-->
@@ -87,56 +78,47 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 	</head>
 	
 	<!-- Navigation Bar, must be padded right by 15px or a scroll bar appears at bottom of map-->
-	<nav class="navbar navbar-default" style="margin:0; border:0; padding-right:15px; background-color:#FFFFFF">
-		<div class="navbar-header">
-			<a class="navbar-brand" href="#">Sidewalk Damage</a>
-		</div>
-		<div>
-			<ul class="nav navbar-nav">
-				<form class="navbar-form" style="padding-left:0; padding-right:0">
-					<input type="text" class="form-control" placeholder="Search By Address" id="pac-input" style="width: 400px">	
-				</form>
-			</ul>
-			<ul class="nav navbar-nav navbar-right">
-				<form class="navbar-form pull-right">
-					<input type="text" class="form-control" placeholder="Search By Apn" id="textBox">
-					<input type="button" class="btn btn-primary" value="Find" id="Find">
-					<input type="button" class="btn btn-primary" value="Clear" id="Clear">
-					<button type="button" class="btn btn-primary" id="layerModal">
-						<span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
-					</button>
-					<div id="myModal" class="modal fade" role="dialog">
-						<div class="modal-dialog modal-sm">
-							<!--Couldn't get the modal backdrop to be completely gone, only options are to make it invisible or make it so it cant be closed by clicking outside the modal-->
-							<div class="modal-content">
-								<div class="modal-header" style="padding:10px">
-									<button type="button" class="close" data-dismiss="modal">&times;</button>
-									<h4 class="modal-title">Toggle Layers</h4>
-								</div>
-								<div class="modal-body" style="padding:10px">
-									<div class="checkbox">
-										<!-- Value should be where your layer will be stored in the sublayer array-->
-										<!-- add "checked" if you want to have the layer visible when loaded, if you don't want the layer visible you will also need to sublayer.hide() it when you load it in-->
-										<input name="layerselect" value="0" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
-										&emsp;gisadmin_sidewalkdamageapn_citywide<br>
-										<input name="layerselect" value="1" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
-										&emsp;sewergrid<br>
-										<input name="layerselect" value="2" type="checkbox" data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
-										&emsp;sewerbasin<br>
-									</div>
-								</div>
-								<div class="modal-footer" style="padding:5px; padding-right:20px">
-									<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
-								</div>
-							</div>
-						</div>
-					</div>
-				</form>
-			</ul>
-		</div>
+	<nav class="navbar navbar-default" style="min-width:1000px; margin:0; border:0; background-color:#FFFFFF">
+		<form class="navbar-form pull-left" style="border:0; margin-bottom:8px; margin-top: 8px; margin-right:0px; margin-left:5px; padding:0; width:580">
+			<a class="navbar-brand pull-left" href="#" style="width:165px; height:20px;padding:0;padding-top:8px; padding-left:5px">Sidewalk Damage</a>
+			<input type="text" class="form-control pull-left" placeholder="Search By Address" id="pac-input" style="width: 400px">	
+		</form>
+		<form class="navbar-form pull-right" style="border:0; margin-bottom:8px; margin-top: 8px; margin-right:5px; margin-left:0px; padding:0px; min-width:380px;height:34px">
+			<input type="text" class="form-control" placeholder="Search By Apn" id="textBox" style="margin:0px; margin-bottom:0px; width:380">
+			<input type="button" class="btn btn-primary" value="Find" id="Find">
+			<input type="button" class="btn btn-primary" value="Clear" id="Clear">
+			<button type="button" class="btn btn-primary" id="layerModal">
+				<span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+			</button>
+		</form>
 	</nav>
-    <div id="map"></div>
-	
+    <div id="map" style="min-width:1000px;"></div>
+	<div id="myModal" class="modal fade" role="dialog">
+		<div class="modal-dialog modal-sm">
+			<!--Couldn't get the modal backdrop to be completely gone, only options are to make it invisible or make it so it cant be closed by clicking outside the modal-->
+			<div class="modal-content">
+				<div class="modal-header" style="padding:10px">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Toggle Layers</h4>
+				</div>
+				<div class="modal-body" style="padding:10px">
+					<div class="checkbox">
+						<!-- Value should be where your layer will be stored in the sublayer array-->
+						<!-- add "checked" if you want to have the layer visible when loaded, if you don't want the layer visible you will also need to sublayer.hide() it when you load it in-->
+						<input name="layerselect" value="0" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+						&emsp;gisadmin_sidewalkdamageapn_citywide<br>
+						<input name="layerselect" value="1" type="checkbox" checked data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+						&emsp;sewergrid<br>
+						<input name="layerselect" value="2" type="checkbox" data-toggle="toggle" data-style="ios" data-class="fast" data-onstyle="info" data-size="mini" data-on=" " data-off=" ">
+						&emsp;sewerbasin<br>
+					</div>
+				</div>
+				<div class="modal-footer" style="padding:5px; padding-right:20px">
+					<button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
 	<!--include scripts-->
 	<!--Jquery needs to be before bootstrap-->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
