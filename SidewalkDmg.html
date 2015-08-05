@@ -240,6 +240,13 @@ done			>add in layer selector (addin multiple layers-lesson 1)(Select Layer-less
 				marker = new L.marker([place.geometry.location.lat(), place.geometry.location.lng()],{clickable:false});
 				map_object.addLayer(marker);
 			});
+			
+			$('#pac-input').keypress(function(e){
+				if(e.which == 13){
+					google.maps.event.trigger(searchBox,'place_changed');
+					return false;
+				}
+			});
 		}
 		<!--Geocoder End-->
 		
